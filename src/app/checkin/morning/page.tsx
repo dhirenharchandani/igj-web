@@ -1,0 +1,106 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { updateStreak } from '@/lib/utils/streak'
+import { BottomNav } from '@/components/layout/BottomNav'
+import Link from 'next/link'
+
+const CHIPS: Record<string, string[]> = {
+  q1: ['Patient and deliberate', 'Fully present', 'Decisive', 'Disciplined'],
+  q2: ['Finishing what I started', 'The conversation I\'ve been avoiding', 'Deep work, no distractions'],
+  q4: ['Avoidance', 'Overthinking', 'Reactivity', 'Control', 'People-pleasing', 'Distraction'],
+}
+
+interface Form { gratitude: string; q1: string; q2: string; q3: string; q4: string; q5: string; q6: string }
+
+export default function MorningPage() {
+  const router = useRouter()
+  const [form, setForm] = useState<Form>({ gratitude: '', q1: '', q2: '', q3: '', q4: '', q5: '', q6: '' })
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  function set(k: keyof Form, v: string) { setForm(f => ({ ...f, [k]: v })) }
+
+  async function save() {
+    setSaving(true)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const today = new Date().toISOString().split('T')[0]
+    if (user) {
+      await supabase.from('morning_checkins').upsert({
+        user_id: user.id, date: today,
+        gratitude_entry: form.gratitude,
+        q1_intention: form.q1,
+        q2_focus: form.q2,
+        q3_energy: form.q3,
+        q4_pattern: form.q4,
+        q5_standard: form.q5,
+        q6_win: form.q6,
+        is_abbreviated: false,
+      })
+      await updateStreak(user.id, supabase)
+    }
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  const Q = ({ label, sub, field, placeholder, chips }: { label: string; sub: string; field: keyof Form; placeholder: string; chips?: string[] }) => (
+    <div style={{ marginBottom: 32 }}>
+      <h3 className="question" style={{ fontSize: 22, color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 8 }}>{label}</h3>
+      <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>{sub}</p>
+      <textarea className="focus-blue" value={form[field]} onChange={e => set(field, e.target.value)} placeholder={placeholder} rows={3} />
+      {chips && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+          {chips.map(c => <button key={c} className="chip" onClick={() => set(field, c)}>{c}</button>)}
+        </div>
+      )}
+    </div>
+  )
+
+  return (
+    <div style={{ maxWidth: 430, margin: '0 auto', background: 'var(--bg)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
+      {/* Tab bar */}
+      <div className="tab-bar">
+        <button className="active">Morning</button>
+        <Link href="/checkin/evening" style={{ textDecoration: 'none', flex: 1 }}>
+          <button style={{ width: '100%', padding: '14px 0', fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', cursor: 'pointer' }}>Evening</button>
+        </Link>
+        <Link href="/checkin/scorecard" style={{ textDecoration: 'none', flex: 1 }}>
+          <button style={{ width: '100%', padding: '14px 0', fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)', background: 'transparent', border: 'none', borderBottom: '2px solid transparent', cursor: 'pointer' }}>Scorecard</button>
+        </Link>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto', padding: '28px 20px' }}>
+        {/* Gratitude primer */}
+        <div style={{ marginBottom: 32 }}>
+          <p className="section-label" style={{ color: 'var(--text-tertiary)', marginBottom: 12 }}>State primer</p>
+          <h3 className="question" style={{ fontSize: 22, color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 8 }}>What&apos;s already working in your life that you&apos;re not giving enough credit to?</h3>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>This isn&apos;t positivity. It&apos;s pattern calibration. You can&apos;t see clearly from a deficit lens.</p>
+          <textarea className="focus-blue" value={form.gratitude} onChange={e => set('gratitude', e.target.value)} placeholder="What's already working is…" rows={3} />
+        </div>
+
+        <Q label="Who do I need to be today?" sub="Identity first. Actions follow." field="q1" placeholder="Today I need to be someone who…" chips={CHIPS.q1} />
+        <Q label="What's the one thing that matters most?" sub="One thing. Not a list." field="q2" placeholder="The one thing is…" chips={CHIPS.q2} />
+        <Q label="What's my energy level — and what's driving it?" sub="Name it accurately. You can only manage what you can see." field="q3" placeholder="My energy is… because…" />
+        <Q label="What pattern am I watching for today?" sub="Name it before it shows up. That's the practice." field="q4" placeholder="The pattern I'm watching for is…" chips={CHIPS.q4} />
+        <Q label="What standard am I holding myself to today?" sub="Not a goal. A non-negotiable." field="q5" placeholder="My standard today is…" />
+        <Q label="What would make today a win?" sub="Be specific. Vague intentions produce vague outcomes." field="q6" placeholder="Today is a win if…" />
+
+        <button className="btn btn-blue" onClick={save} disabled={saving}>
+          {saving ? 'Saving…' : 'Save morning check-in'}
+        </button>
+
+        {saved && (
+          <p style={{ textAlign: 'center', marginTop: 14, color: 'var(--teal)', fontSize: 13, fontWeight: 500 }}>
+            ✓ Morning locked in.
+          </p>
+        )}
+      </div>
+
+      <BottomNav />
+    </div>
+  )
+}

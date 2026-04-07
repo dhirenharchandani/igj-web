@@ -1,0 +1,15 @@
+-- ============================================================
+-- Seed file — for local dev only, not production
+-- ============================================================
+-- This inserts a test user profile (auth user must exist first)
+-- In production, the trigger handle_new_user() does this automatically.
+
+-- Example: after creating a user via Supabase Auth dashboard,
+-- manually set their profile for testing:
+--
+-- update public.user_profiles
+-- set
+--   display_name = 'Test User',
+--   identity_gap_text = 'I say I want to build something real but I keep choosing comfort over execution.',
+--   onboarding_done = true
+-- where id = '<your-user-uuid>';
