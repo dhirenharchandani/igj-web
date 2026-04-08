@@ -8,9 +8,18 @@ import { updateStreak } from '@/lib/utils/streak'
 import { BottomNav } from '@/components/layout/BottomNav'
 
 const CHIPS: Record<string, string[]> = {
-  q1: ['Patient and deliberate', 'Fully present', 'Decisive', 'Disciplined'],
-  q2: ['Finishing what I started', 'The conversation I\'ve been avoiding', 'Deep work, no distractions'],
+  gratitude: [
+    'The relationships I\'ve built',
+    'My health and ability to show up',
+    'The progress I\'ve made, even if slow',
+    'My ability to learn and adapt',
+  ],
+  q1: ['Patient and deliberate', 'Fully present', 'Decisive', 'Disciplined', 'Calm under pressure'],
+  q2: ['Finishing what I started', 'The conversation I\'ve been avoiding', 'Deep work, no distractions', 'The decision I\'ve been putting off'],
+  q3: ['High — clear and focused', 'Low — didn\'t rest enough', 'Scattered — too many open loops', 'Anxious — avoiding something', 'Flat — disconnected from purpose'],
   q4: ['Avoidance', 'Overthinking', 'Reactivity', 'Control', 'People-pleasing', 'Distraction'],
+  q5: ['I respond instead of react', 'I finish what I start', 'I do what I said I would', 'I don\'t complain, I solve', 'I show up fully, not partially'],
+  q6: ['I completed the one thing', 'I showed up as who I said I\'d be', 'I closed the gap, even slightly', 'I moved the needle on what matters most'],
 }
 
 interface Form { gratitude: string; q1: string; q2: string; q3: string; q4: string; q5: string; q6: string }
@@ -60,6 +69,8 @@ export default function MorningPage() {
       })
       await updateStreak(user.id, supabase)
     }
+    // ── Mark done in localStorage immediately — dashboard reads this, no async delay ──
+    localStorage.setItem('igj_morning_done_date', today)
     setSaving(false)
     setSaved(true)
   }
@@ -119,14 +130,17 @@ export default function MorningPage() {
           <h3 className="question" style={{ fontSize: 22, color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 8 }}>What&apos;s already working in your life that you&apos;re not giving enough credit to?</h3>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>This isn&apos;t positivity. It&apos;s pattern calibration. You can&apos;t see clearly from a deficit lens.</p>
           <textarea className="focus-blue" value={form.gratitude} onChange={e => set('gratitude', e.target.value)} placeholder="What's already working is…" rows={3} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+            {CHIPS.gratitude.map(c => <button key={c} className="chip" onClick={() => set('gratitude', c)}>{c}</button>)}
+          </div>
         </div>
 
         <QuestionBlock label="Who do I need to be today?" sub="Identity first. Actions follow." field="q1" placeholder="Today I need to be someone who…" chips={CHIPS.q1} value={form.q1} onChange={v => set('q1', v)} />
         <QuestionBlock label="What's the one thing that matters most?" sub="One thing. Not a list." field="q2" placeholder="The one thing is…" chips={CHIPS.q2} value={form.q2} onChange={v => set('q2', v)} />
-        <QuestionBlock label="What's my energy level — and what's driving it?" sub="Name it accurately. You can only manage what you can see." field="q3" placeholder="My energy is… because…" value={form.q3} onChange={v => set('q3', v)} />
+        <QuestionBlock label="What's my energy level — and what's driving it?" sub="Name it accurately. You can only manage what you can see." field="q3" placeholder="My energy is… because…" chips={CHIPS.q3} value={form.q3} onChange={v => set('q3', v)} />
         <QuestionBlock label="What pattern am I watching for today?" sub="Name it before it shows up. That's the practice." field="q4" placeholder="The pattern I'm watching for is…" chips={CHIPS.q4} value={form.q4} onChange={v => set('q4', v)} />
-        <QuestionBlock label="What standard am I holding myself to today?" sub="Not a goal. A non-negotiable." field="q5" placeholder="My standard today is…" value={form.q5} onChange={v => set('q5', v)} />
-        <QuestionBlock label="What would make today a win?" sub="Be specific. Vague intentions produce vague outcomes." field="q6" placeholder="Today is a win if…" value={form.q6} onChange={v => set('q6', v)} />
+        <QuestionBlock label="What standard am I holding myself to today?" sub="Not a goal. A non-negotiable." field="q5" placeholder="My standard today is…" chips={CHIPS.q5} value={form.q5} onChange={v => set('q5', v)} />
+        <QuestionBlock label="What would make today a win?" sub="Be specific. Vague intentions produce vague outcomes." field="q6" placeholder="Today is a win if…" chips={CHIPS.q6} value={form.q6} onChange={v => set('q6', v)} />
 
         <button className="btn btn-blue" onClick={save} disabled={saving}>
           {saving ? 'Saving…' : 'Save morning check-in'}

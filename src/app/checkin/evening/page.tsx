@@ -46,6 +46,9 @@ export default function EveningPage() {
         q5_tomorrow: form.q5,
       })
     }
+    // Mark done in localStorage immediately — dashboard reads this, no async delay
+    const today2 = new Date().toISOString().split('T')[0]
+    localStorage.setItem('igj_evening_done_date', today2)
     setSaving(false)
     router.push('/checkin/scorecard')
   }

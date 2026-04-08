@@ -4,15 +4,22 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { getWeekStart } from '@/lib/utils/scoring'
 
+function getTodayFromStorage(key: string): boolean {
+  if (typeof window === 'undefined') return false
+  const today = new Date().toISOString().split('T')[0]
+  return localStorage.getItem(key) === today
+}
+
 export function useCheckinStatus() {
-  const [status, setStatus] = useState({
-    morningDone: false,
-    eveningDone: false,
-    scorecardDone: false,
+  const [status, setStatus] = useState(() => ({
+    // Seed synchronously from localStorage — no async delay, no flash of wrong state
+    morningDone: getTodayFromStorage('igj_morning_done_date'),
+    eveningDone: getTodayFromStorage('igj_evening_done_date'),
+    scorecardDone: getTodayFromStorage('igj_scorecard_done_date'),
     weeklyResetDone: false,
     eveningTime: '21:00',
     loading: true,
-  })
+  }))
 
   // Use a refresh counter so callers can force a re-fetch
   const [refreshCount, setRefreshCount] = useState(0)

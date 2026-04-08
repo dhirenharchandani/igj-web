@@ -53,6 +53,9 @@ export default function ScorecardPage() {
       setInsight(data.insight ?? '')
       setLowestDim(data.lowestDimension ?? '')
     }
+    // Mark done in localStorage immediately — dashboard reads this, no async delay
+    const today2 = new Date().toISOString().split('T')[0]
+    localStorage.setItem('igj_scorecard_done_date', today2)
     setLoading(false)
   }
 
