@@ -2,20 +2,18 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useStore } from '@/lib/store'
 
 const LINKS = [
-  { href: '/dashboard',          label: 'Home' },
-  { href: '/checkin/morning',    label: 'Daily' },
-  { href: '/weekly/data-bridge', label: 'Weekly' },
-  { href: '/learn',              label: 'Learn' },
+  { href: '/dashboard',          label: 'Home'     },
+  { href: '/checkin/morning',    label: 'Daily'    },
+  { href: '/weekly/data-bridge', label: 'Weekly'   },
+  { href: '/learn',              label: 'Learn'    },
   { href: '/patterns',           label: 'Patterns' },
+  { href: '/settings',           label: 'Settings' },
 ]
 
 export function BottomNav() {
   const path = usePathname()
-  const { profile, setTheme } = useStore()
-  const isDark = profile.theme === 'dark'
 
   return (
     <nav
@@ -60,34 +58,6 @@ export function BottomNav() {
           </Link>
         )
       })}
-
-      {/* Theme toggle */}
-      <button
-        onClick={() => setTheme(isDark ? 'light' : 'dark')}
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 3,
-          padding: '6px 0',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-        }}
-        aria-label="Toggle theme"
-      >
-        <span style={{ fontSize: 14, lineHeight: 1 }}>{isDark ? '☀️' : '🌙'}</span>
-        <span style={{
-          fontSize: 10,
-          fontWeight: 400,
-          color: 'var(--text-tertiary)',
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-        }}>
-          {isDark ? 'Light' : 'Dark'}
-        </span>
-      </button>
     </nav>
   )
 }
