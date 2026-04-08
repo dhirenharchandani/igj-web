@@ -92,9 +92,9 @@ export default function MorningPage() {
           <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>🌙 Evening check-in available after 5 PM</p>
         </div>
 
-        <Link href="/dashboard" style={{ textDecoration: 'none', width: '100%' }}>
-          <button className="btn btn-teal">Back to home</button>
-        </Link>
+        <button className="btn btn-teal" onClick={() => { router.refresh(); router.push('/dashboard') }}>
+          Back to home
+        </button>
       </div>
     )
   }
