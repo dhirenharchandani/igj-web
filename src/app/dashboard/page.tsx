@@ -147,9 +147,9 @@ export default function DashboardPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status.morningDone, status.eveningDone, status.scorecardDone])
 
-  // ─── Hero CTA: SEQUENTIAL — morning always first, regardless of time ───
+  // ─── Hero CTA: sequential + time-gated evening ───
   function getHero() {
-    // Step 1: Morning "Set the Field" — always the entry point
+    // Step 1: Morning — always the entry point
     if (!status.morningDone) return {
       phase: 1,
       heading: 'Set the field for today.',
@@ -157,19 +157,41 @@ export default function DashboardPage() {
       btn: 'Start morning →',
       href: '/checkin/morning',
       accent: 'var(--blue)',
-      textColor: '#fff',
+      locked: false,
     }
-    // Step 2: Evening "Harvest" — only after morning is done
-    if (!status.eveningDone) return {
-      phase: 2,
-      heading: 'Time to harvest your day.',
-      sub: 'What did today reveal about you?',
-      btn: 'Start evening →',
-      href: '/checkin/evening',
-      accent: 'var(--purple)',
-      textColor: '#fff',
+
+    // Step 2: Evening — only after morning; time-gated to scheduled evening time
+    if (!status.eveningDone) {
+      const [evHr, evMin] = status.eveningTime.split(':').map(Number)
+      const now = new Date()
+      const eveningOpen = now.getHours() > evHr || (now.getHours() === evHr && now.getMinutes() >= evMin)
+
+      if (!eveningOpen) {
+        const fmt = new Date(); fmt.setHours(evHr, evMin, 0)
+        const label = fmt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+        return {
+          phase: 2,
+          heading: 'Morning complete.',
+          sub: `Your evening check-in opens at ${label}. Come back then to reflect on how today went.`,
+          btn: undefined,
+          href: '',
+          accent: 'var(--teal)',
+          locked: true,
+        }
+      }
+
+      return {
+        phase: 2,
+        heading: 'Time to harvest your day.',
+        sub: 'What did today reveal about you?',
+        btn: 'Start evening →',
+        href: '/checkin/evening',
+        accent: 'var(--purple)',
+        locked: false,
+      }
     }
-    // Step 3: Score the day — only after both check-ins
+
+    // Step 3: Scorecard
     if (!status.scorecardDone) return {
       phase: 3,
       heading: 'Score the day.',
@@ -177,19 +199,20 @@ export default function DashboardPage() {
       btn: 'Daily scorecard →',
       href: '/checkin/scorecard',
       accent: 'var(--teal)',
-      textColor: '#fff',
+      locked: false,
     }
+
     // All done
     return {
       phase: 0,
-      heading: "Today is complete.",
+      heading: 'Today is complete.',
       sub: state.todayScore
         ? `You scored ${state.todayScore}/5 today. ${state.streak} day streak.`
         : `${state.streak} day streak. Keep going.`,
-      btn: state.insightText ? 'Read today\'s insight →' : undefined,
+      btn: state.insightText ? "Read today's insight →" : undefined,
       href: '/patterns',
       accent: 'var(--teal)',
-      textColor: '#fff',
+      locked: false,
     }
   }
 
