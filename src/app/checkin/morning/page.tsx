@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { updateStreak } from '@/lib/utils/streak'
 import { BottomNav } from '@/components/layout/BottomNav'
-import Link from 'next/link'
 
 const CHIPS: Record<string, string[]> = {
   q1: ['Patient and deliberate', 'Fully present', 'Decisive', 'Disciplined'],
@@ -14,6 +14,24 @@ const CHIPS: Record<string, string[]> = {
 }
 
 interface Form { gratitude: string; q1: string; q2: string; q3: string; q4: string; q5: string; q6: string }
+
+function QuestionBlock({ label, sub, field, placeholder, chips, value, onChange }: {
+  label: string; sub: string; field: string; placeholder: string
+  chips?: string[]; value: string; onChange: (v: string) => void
+}) {
+  return (
+    <div style={{ marginBottom: 32 }}>
+      <h3 className="question" style={{ fontSize: 22, color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 8 }}>{label}</h3>
+      <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>{sub}</p>
+      <textarea className="focus-blue" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3} />
+      {chips && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+          {chips.map(c => <button key={c} className="chip" onClick={() => onChange(c)}>{c}</button>)}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function MorningPage() {
   const router = useRouter()
@@ -44,21 +62,42 @@ export default function MorningPage() {
     }
     setSaving(false)
     setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
   }
 
-  const Q = ({ label, sub, field, placeholder, chips }: { label: string; sub: string; field: keyof Form; placeholder: string; chips?: string[] }) => (
-    <div style={{ marginBottom: 32 }}>
-      <h3 className="question" style={{ fontSize: 22, color: 'var(--text-primary)', lineHeight: 1.3, marginBottom: 8 }}>{label}</h3>
-      <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>{sub}</p>
-      <textarea className="focus-blue" value={form[field]} onChange={e => set(field, e.target.value)} placeholder={placeholder} rows={3} />
-      {chips && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-          {chips.map(c => <button key={c} className="chip" onClick={() => set(field, c)}>{c}</button>)}
+  // ── Completion screen ──
+  if (saved) {
+    return (
+      <div style={{ maxWidth: 430, margin: '0 auto', background: 'var(--bg)', minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--teal-dim)', border: '1px solid var(--teal-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 28, fontSize: 28 }}>
+          ✓
         </div>
-      )}
-    </div>
-  )
+
+        <h2 className="question" style={{ fontSize: 28, color: 'var(--text-primary)', textAlign: 'center', marginBottom: 14, lineHeight: 1.25 }}>
+          Morning locked in.
+        </h2>
+        <p style={{ fontSize: 15, color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.65, marginBottom: 28 }}>
+          You've set the field for today. Come back this evening to reflect on how it actually went.
+        </p>
+
+        {form.q1 && (
+          <div style={{ width: '100%', background: 'var(--bg2)', border: '1px solid var(--border)', borderLeft: '3px solid var(--blue)', borderRadius: 16, padding: 20, marginBottom: 20 }}>
+            <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--blue)', marginBottom: 10 }}>Your intention today</p>
+            <p className="question" style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.6, fontStyle: 'italic' }}>
+              &ldquo;{form.q1}&rdquo;
+            </p>
+          </div>
+        )}
+
+        <div style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px', marginBottom: 32, textAlign: 'center' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>🌙 Evening check-in available after 5 PM</p>
+        </div>
+
+        <Link href="/dashboard" style={{ textDecoration: 'none', width: '100%' }}>
+          <button className="btn btn-teal">Back to home</button>
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div style={{ maxWidth: 430, margin: '0 auto', background: 'var(--bg)', minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
@@ -82,22 +121,16 @@ export default function MorningPage() {
           <textarea className="focus-blue" value={form.gratitude} onChange={e => set('gratitude', e.target.value)} placeholder="What's already working is…" rows={3} />
         </div>
 
-        <Q label="Who do I need to be today?" sub="Identity first. Actions follow." field="q1" placeholder="Today I need to be someone who…" chips={CHIPS.q1} />
-        <Q label="What's the one thing that matters most?" sub="One thing. Not a list." field="q2" placeholder="The one thing is…" chips={CHIPS.q2} />
-        <Q label="What's my energy level — and what's driving it?" sub="Name it accurately. You can only manage what you can see." field="q3" placeholder="My energy is… because…" />
-        <Q label="What pattern am I watching for today?" sub="Name it before it shows up. That's the practice." field="q4" placeholder="The pattern I'm watching for is…" chips={CHIPS.q4} />
-        <Q label="What standard am I holding myself to today?" sub="Not a goal. A non-negotiable." field="q5" placeholder="My standard today is…" />
-        <Q label="What would make today a win?" sub="Be specific. Vague intentions produce vague outcomes." field="q6" placeholder="Today is a win if…" />
+        <QuestionBlock label="Who do I need to be today?" sub="Identity first. Actions follow." field="q1" placeholder="Today I need to be someone who…" chips={CHIPS.q1} value={form.q1} onChange={v => set('q1', v)} />
+        <QuestionBlock label="What's the one thing that matters most?" sub="One thing. Not a list." field="q2" placeholder="The one thing is…" chips={CHIPS.q2} value={form.q2} onChange={v => set('q2', v)} />
+        <QuestionBlock label="What's my energy level — and what's driving it?" sub="Name it accurately. You can only manage what you can see." field="q3" placeholder="My energy is… because…" value={form.q3} onChange={v => set('q3', v)} />
+        <QuestionBlock label="What pattern am I watching for today?" sub="Name it before it shows up. That's the practice." field="q4" placeholder="The pattern I'm watching for is…" chips={CHIPS.q4} value={form.q4} onChange={v => set('q4', v)} />
+        <QuestionBlock label="What standard am I holding myself to today?" sub="Not a goal. A non-negotiable." field="q5" placeholder="My standard today is…" value={form.q5} onChange={v => set('q5', v)} />
+        <QuestionBlock label="What would make today a win?" sub="Be specific. Vague intentions produce vague outcomes." field="q6" placeholder="Today is a win if…" value={form.q6} onChange={v => set('q6', v)} />
 
         <button className="btn btn-blue" onClick={save} disabled={saving}>
           {saving ? 'Saving…' : 'Save morning check-in'}
         </button>
-
-        {saved && (
-          <p style={{ textAlign: 'center', marginTop: 14, color: 'var(--teal)', fontSize: 13, fontWeight: 500 }}>
-            ✓ Morning locked in.
-          </p>
-        )}
       </div>
 
       <BottomNav />
