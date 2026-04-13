@@ -1,21 +1,48 @@
 import Groq from 'groq-sdk'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  let dataClient: ReturnType<typeof createSupabaseClient>
+  let userId: string
+
+  const authHeader = req.headers.get('authorization')
+
+  if (authHeader?.startsWith('Bearer ')) {
+    // ── Mobile app: JWT token in Authorization header ──
+    const token = authHeader.substring(7)
+    const verifier = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    const { data: { user } } = await verifier.auth.getUser(token)
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    userId = user.id
+    // Data client uses the user's token so RLS applies correctly
+    dataClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
+    )
+  } else {
+    // ── Web app: cookie-based auth ──
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    userId = user.id
+    dataClient = supabase as unknown as ReturnType<typeof createSupabaseClient>
+  }
 
   const { date } = await req.json()
 
   const [{ data: morning }, { data: evening }, { data: scorecard }, { data: profile }] = await Promise.all([
-    supabase.from('morning_checkins').select('*').eq('user_id', user.id).eq('date', date).single(),
-    supabase.from('evening_checkins').select('*').eq('user_id', user.id).eq('date', date).single(),
-    supabase.from('daily_scorecards').select('*').eq('user_id', user.id).eq('date', date).single(),
-    supabase.from('user_profiles').select('identity_gap_text').eq('id', user.id).single(),
+    dataClient.from('morning_checkins').select('*').eq('user_id', userId).eq('date', date).maybeSingle(),
+    dataClient.from('evening_checkins').select('*').eq('user_id', userId).eq('date', date).maybeSingle(),
+    dataClient.from('daily_scorecards').select('*').eq('user_id', userId).eq('date', date).maybeSingle(),
+    dataClient.from('user_profiles').select('identity_gap_text').eq('id', userId).maybeSingle(),
   ])
 
   const dims = {
@@ -64,8 +91,8 @@ Rules:
 
   const insight = response.choices[0].message.content ?? ''
 
-  await supabase.from('daily_insights').upsert({
-    user_id: user.id,
+  await dataClient.from('daily_insights').upsert({
+    user_id: userId,
     date,
     insight_text: insight,
     lowest_dimension: lowestDimension,
